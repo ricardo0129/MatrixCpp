@@ -5,6 +5,7 @@ class matrix{
     public:
     matrix(int rows, int cols);
     void mult(matrix B);
+
     private:
     int** A; 
 };
