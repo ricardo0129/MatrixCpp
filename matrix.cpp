@@ -2,7 +2,42 @@
 #include "bundle.h"
 
 const auto processor_count = thread::hardware_concurrency();
-const int NUM_THREADS = 4; 
+const int NUM_THREADS = processor_count; 
+
+void createThreads(matrix* A, matrix* B, matrix* C,void* (f)(void*)){
+    MatrixBundle* bundle;
+    bundle = new struct MatrixBundle;
+    bundle->A = A;
+    bundle->B = B;
+    bundle->C = C;
+    int rc;
+    int N = A->rows*B->cols;
+    int spacing = N/NUM_THREADS;
+    int threadsCreated = min(NUM_THREADS,N);
+    pthread_t threads[threadsCreated];
+    pthread_attr_t attr;
+    void *status;
+
+    // Initialize and set thread joinable
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    for(int i=0; i<threadsCreated; i++) {
+        range* R = new struct range;
+        MultParam* P = new struct MultParam;
+        int start = i*spacing; int end = min((i+1)*spacing,N-1);
+        R->rowS = start/C->cols; R->colS = start%C->cols;
+        R->rowE = end/C->cols; R->colE = end%C->cols;
+        P->bund = bundle; P->Mrange = R;
+        rc = pthread_create(&threads[i], &attr, f, (void*)P);
+    }
+    // free attribute and wait for the other threads
+    pthread_attr_destroy(&attr);
+    for(int i=0; i<threadsCreated; i++ ) {
+        rc = pthread_join(threads[i], &status);
+    }
+    //pthread_exit(NULL);
+
+}
 
 matrix::matrix(int rows, int cols){
     this->rows = rows;  this->cols = cols;
@@ -49,40 +84,10 @@ matrix::operator*(const matrix& B){
         return *C;
     }
     C = new matrix(rows,B.cols);
-    MatrixBundle* bundle;
-    bundle = new struct MatrixBundle;
-    bundle->A = this;
-    bundle->B = (matrix *)&B;
-    bundle->C = C;
-    int rc;
-    int N = rows*B.cols;
-    int spacing = N/NUM_THREADS;
-    int threadsCreated = min(NUM_THREADS,N);
-    pthread_t threads[threadsCreated];
-    pthread_attr_t attr;
-    void *status;
-
-    // Initialize and set thread joinable
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-    for(int i=0; i<threadsCreated; i++) {
-        range* R = new struct range;
-        MultParam* P = new struct MultParam;
-        int start = i*spacing; int end = min((i+1)*spacing,N-1);
-        R->rowS = start/C->cols; R->colS = start%C->cols;
-        R->rowE = end/C->cols; R->colE = end%C->cols;
-        P->bund = bundle; P->Mrange = R;
-        rc = pthread_create(&threads[i], &attr, multiTwoMatrix, (void *)(P));
-    }
-
-    // free attribute and wait for the other threads
-    pthread_attr_destroy(&attr);
-    for(int i=0; i<threadsCreated; i++ ) {
-        rc = pthread_join(threads[i], &status);
-    }
-    //pthread_exit(NULL);
+    createThreads(this,(matrix *)&B,C,multiTwoMatrix);
     return *C;
 }
+
 void
 *addTwoMatrix(void* in){
     struct MultParam* arg = (struct MultParam*)in;
@@ -103,81 +108,12 @@ matrix::operator+(const matrix& B){
     if(rows != B.rows || cols != B.cols){
         return *C;
     }
-    C = new matrix(rows,B.cols);
-    MatrixBundle* bundle;
-    bundle = new struct MatrixBundle;
-    bundle->A = this;
-    bundle->B = (matrix *)&B;
-    bundle->C = C;
-    int rc;
-    int N = rows*B.cols;
-    int spacing = N/NUM_THREADS;
-    int threadsCreated = min(NUM_THREADS,N);
-    pthread_t threads[threadsCreated];
-    pthread_attr_t attr;
-    void *status;
+    C = new matrix(rows,cols);
+    createThreads(this,(matrix *)&B,C,addTwoMatrix);
 
-    // Initialize and set thread joinable
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-    for(int i=0; i<threadsCreated; i++) {
-        range* R = new struct range;
-        MultParam* P = new struct MultParam;
-        int start = i*spacing; int end = min((i+1)*spacing,N-1);
-        R->rowS = start/C->cols; R->colS = start%C->cols;
-        R->rowE = end/C->cols; R->colE = end%C->cols;
-        P->bund = bundle; P->Mrange = R;
-        rc = pthread_create(&threads[i], &attr, addTwoMatrix, (void *)(P));
-    }
-
-    // free attribute and wait for the other threads
-    pthread_attr_destroy(&attr);
-    for(int i=0; i<threadsCreated; i++ ) {
-        rc = pthread_join(threads[i], &status);
-    }
-    //pthread_exit(NULL);
     return *C;
 }
 
-/*
-void createThreads(void (*f)){
-    matrix* C;
-    C = new matrix(rows,B.cols);
-    MatrixBundle* bundle;
-    bundle = new struct MatrixBundle;
-    bundle->A = this;
-    bundle->B = (matrix *)&B;
-    bundle->C = C;
-    int rc;
-    int N = rows*B.cols;
-    int spacing = N/NUM_THREADS;
-    int threadsCreated = min(NUM_THREADS,N);
-    pthread_t threads[threadsCreated];
-    pthread_attr_t attr;
-    void *status;
-
-    // Initialize and set thread joinable
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-    for(int i=0; i<threadsCreated; i++) {
-        range* R = new struct range;
-        MultParam* P = new struct MultParam;
-        int start = i*spacing; int end = min((i+1)*spacing,N-1);
-        R->rowS = start/C->cols; R->colS = start%C->cols;
-        R->rowE = end/C->cols; R->colE = end%C->cols;
-        P->bund = bundle; P->Mrange = R;
-        rc = pthread_create(&threads[i], &attr, f, (void *)(P));
-    }
-
-    // free attribute and wait for the other threads
-    pthread_attr_destroy(&attr);
-    for(int i=0; i<threadsCreated; i++ ) {
-        rc = pthread_join(threads[i], &status);
-    }
-    //pthread_exit(NULL);
-
-}
-*/
 void
 matrix::randomize(){
     for(int i=0;i<rows;i++){
