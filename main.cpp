@@ -5,15 +5,15 @@
 
 
 using namespace std;
-const int N = 2;
+const int N = 1000;
 
 
 int main () {
     matrix A(N,N);
     matrix B(N,N);
     A.randomize(); B.randomize();
-    A.print(); cout<<endl; B.print(); cout<<endl;
-    matrix C = A+B;
-    C.print();
+    //A.print(); cout<<endl; B.print(); cout<<endl;
+    matrix C = A*B;
+    //C.print();
     return 0;
 }
