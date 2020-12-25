@@ -11,7 +11,8 @@ class matrix{
     public:
     matrix(int rows, int cols);
     matrix(vector<int> arr);
-    matrix mult(matrix B);
+    matrix operator*(const matrix& B);
+    matrix operator+(const matrix& B);
     void print();
     void randomize();
     int** A; 

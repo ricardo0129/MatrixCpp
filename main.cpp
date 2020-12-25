@@ -5,16 +5,16 @@
 
 
 using namespace std;
-const int N = 2000;
+const int N = 4;
 
 
 int main () {
     matrix A(N,N);
     matrix B(N,N);
     A.randomize(); B.randomize();
-    //A.print(); B.print();
-    matrix C = A.mult(B);
-    //C.print();
+    A.print(); cout<<endl; B.print(); cout<<endl;
+    matrix C = A+B;
+    C.print();
 
     return 0;
 }
