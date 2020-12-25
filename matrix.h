@@ -1,11 +1,14 @@
 #ifndef MATRIX_H
 #define MATRIX_H
+
 #include <stdlib.h> 
 #include <iostream>
 #include <thread>
 #include <vector>
 #include <pthread.h>
+
 using namespace std;
+
 
 class matrix{
     public:
@@ -19,9 +22,6 @@ class matrix{
     int rows;
     int cols;
 };
-struct MatrixBundle{
-    matrix* A;
-    matrix* B;
-    matrix* C;
-};
+
+
 #endif

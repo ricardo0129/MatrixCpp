@@ -5,7 +5,7 @@
 
 
 using namespace std;
-const int N = 4;
+const int N = 2;
 
 
 int main () {
@@ -15,6 +15,5 @@ int main () {
     A.print(); cout<<endl; B.print(); cout<<endl;
     matrix C = A+B;
     C.print();
-
     return 0;
 }
